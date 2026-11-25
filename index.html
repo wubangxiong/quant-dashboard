@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>日内做T量化器 | Intraday Quant</title>
+<title>量化分析引擎 | QUANT DASHBOARD</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -61,7 +61,7 @@ body{
   position:relative; z-index:5;
   display:grid;
   grid-template-columns:1fr 1fr 280px;
-  grid-template-rows:15% 63% 22%;
+  grid-template-rows:26% 48% 26%;
   height:100vh; width:100vw;
   gap:1px; padding:1px;
   background:#090d14;
@@ -95,12 +95,6 @@ body{
 #strategyPanel{ grid-column:1 / span 2; grid-row:2; }
 #termPanel{ grid-column:3; grid-row:2; }
 #dailyPanel{ grid-column:1 / span 3; grid-row:3; }
-
-/* 策略引擎：纵向 flex，让结果区自动填满剩余高度 */
-#strategyPanel{ display:flex; flex-direction:column; }
-#strategyPanel .panel-header,
-#strategyPanel .strategy-input-row,
-#strategyPanel .strategy-custom-row{ flex-shrink:0; }
 
 /* ==================== TICK PANEL ==================== */
 .chart-container{ width:100%; height:calc(100% - 28px); position:relative; }
@@ -319,7 +313,7 @@ body{
 
 /* ==================== STRATEGY RANK LIST ==================== */
 .strategy-rank-card{
-  margin:6px 12px; padding:9px 12px;
+  margin:8px 14px; padding:12px 14px;
   border:1px solid var(--border); border-radius:8px;
   background:var(--bg); transition:all .3s; cursor:default;
 }
@@ -507,7 +501,7 @@ body{
 
   <!-- ROW1-COL3: SIGNAL ENGINE -->
   <div class="panel" id="signalPanel">
-    <div class="panel-header"><div class="dot dot-gold"></div>信号指示灯<span style="margin-left:auto;font-size:9px;color:var(--gold);">● LIVE</span></div>
+    <div class="panel-header"><div class="dot dot-gold"></div>量化信号引擎<span style="margin-left:auto;font-size:9px;color:var(--gold);">● LIVE</span></div>
     <div style="height:calc(100% - 28px);overflow-y:auto;" id="sigContainer"></div>
   </div>
 
@@ -520,7 +514,7 @@ body{
     </div>
     <div class="strategy-input-row">
       <span class="strategy-input-label">标的</span>
-      <input class="strategy-input" id="strategySymbol" value="" placeholder="6000**" style="width:58px;">
+      <input class="strategy-input" id="strategySymbol" value="600036" placeholder="600036" style="width:58px;">
       <span class="strategy-input-label">胜率%</span>
       <input class="strategy-input" id="strategyWinRate" value="45" placeholder="45">
       <span class="strategy-input-label">止损%</span>
@@ -534,7 +528,7 @@ body{
       <span class="strategy-input-label" style="white-space:nowrap;">自定义</span>
       <input type="text" id="strategyCustom" placeholder="输入额外要求，如：只看MACD金叉、持仓不超过10天..." style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:13px;padding:6px 8px;outline:none;border-radius:3px;transition:border-color .3s;">
     </div>
-    <div class="strategy-custom-row" style="border-bottom:1px solid var(--border);flex-wrap:wrap;">
+    <div class="strategy-custom-row" style="border-bottom:1px solid var(--border);">
       <button class="strategy-btn secondary" onclick="fetchDailyData()">获取数据</button>
       <button class="strategy-btn primary" id="strategyGenBtn" onclick="runStrategyEngine()">
         <span class="spinner"></span><span class="btn-text">AI生成策略</span>
@@ -542,14 +536,11 @@ body{
       <button class="strategy-btn primary" id="batchGenBtn" onclick="runBatchStrategy()" style="background:var(--gold);border-color:var(--gold);box-shadow:0 1px 3px rgba(210,153,29,.25);">
         <span class="spinner"></span><span class="btn-text">生成10策略</span>
       </button>
-      <button class="strategy-btn primary" id="tGenBtn" onclick="runTStrategy()" style="background:var(--cyan);border-color:var(--cyan);color:#0d1117;box-shadow:0 1px 3px rgba(57,210,192,.25);">
-        <span class="spinner"></span><span class="btn-text">做T策略</span>
-      </button>
       <button class="strategy-btn primary" id="shortBtn" onclick="runShortStrategy()" style="background:var(--green-dn);border-color:var(--green-dn);box-shadow:0 1px 3px rgba(63,185,80,.25);">
         <span class="spinner"></span><span class="btn-text">反向做空</span>
       </button>
     </div>
-    <div id="strategyResultWrap" style="flex:1;min-height:0;overflow-y:auto;">
+    <div id="strategyResultWrap" style="height:calc(100% - 110px);overflow-y:auto;">
       <div class="placeholder-msg">输入参数 → 获取数据 → AI生成策略 → 回测演练</div>
     </div>
   </div>
@@ -570,7 +561,7 @@ body{
       <button class="anim-btn" id="animPlayBtn" onclick="toggleDailyAnim()" title="播放/暂停">▶</button>
       <button class="anim-btn" onclick="resetDailyAnim()" title="重置">↺</button>
     </div>
-    <div class="chart-container" id="dailyChart"></div>
+    <div class="chart-container" id="dailyChart" style="height:100%;"></div>
   </div>
 
 </div>
@@ -759,7 +750,6 @@ function initAll(){
   setTimeout(()=>dispatchEvent(new Event('resize')),200);
   initTickChart(); initSignalPanel();
   renderRiskWheel();
-  fetchDailyData();
   setInterval(()=>{addTick()},60);
   setInterval(updateTickChart,200);
   setInterval(addLogLine,80);
@@ -894,7 +884,6 @@ function initDanmaku(){
 }
 
 function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function maskSymbol(s){s=String(s||'').trim();return s.length>2?s.slice(0,-2)+'**':s;}
 
 // ==================== SIGNAL PANEL ====================
 let sigRollTimer=null;
@@ -980,7 +969,7 @@ function rollEl(id,val,dec,suffix,cl){
 }
 
 // ==================== TERMINAL LOG ====================
-let logDataIdx=0,logPrevClose=null,logLineCount=0;
+let logDataIdx=0,logPrevClose=null;
 function addLogLine(){
   let tc=document.getElementById('terminalContent');
   let html='';
@@ -1009,8 +998,7 @@ function addLogLine(){
     html=`<span style="color:var(--dim);">[${ts}]</span> <span style="color:var(--gold);">等待日线数据加载...</span>`;
   }
 
-  logLineCount++;
-  let div=document.createElement('div');div.style.opacity='1';div.style.background=(logLineCount%2===0)?'rgba(88,166,255,.10)':'rgba(248,81,73,.10)';div.style.padding='1px 6px';div.style.borderRadius='2px';div.innerHTML=html;tc.appendChild(div);
+  let div=document.createElement('div');div.style.opacity='1';div.innerHTML=html;tc.appendChild(div);
   let lines=tc.querySelectorAll('div');if(lines.length>50)lines[0].remove();
   lines.forEach((l,i)=>{let pos=lines.length-i;if(pos>30)l.style.opacity='0.1';else if(pos>20)l.style.opacity='0.3';else if(pos>10)l.style.opacity='0.6'});
   tc.scrollTop=tc.scrollHeight;
@@ -1022,7 +1010,7 @@ let dailyAnimIndex=0,dailyAnimTimer=null,dailyAnimRunning=false,animSpeed=200;
 
 async function fetchDailyData(){
   const symbol=document.getElementById('strategySymbol').value.trim()||'600036';
-  document.getElementById('strategyResultWrap').innerHTML='<div class="placeholder-msg" style="color:var(--blue);">正在获取 ' + maskSymbol(symbol) + ' 4年日线数据...</div>';
+  document.getElementById('strategyResultWrap').innerHTML='<div class="placeholder-msg" style="color:var(--blue);">正在获取 ' + symbol + ' 4年日线数据...</div>';
 
   try{await fetchFromTencent(symbol);return true;}catch(e1){
     try{await fetchFromLocal(symbol);return true;}catch(e2){
@@ -1068,7 +1056,7 @@ async function fetchFromTencent(symbol){
   if(!dailyOhlcv.length)throw new Error('解析后无有效数据');
   logDataIdx=0;logPrevClose=null;
 
-  document.getElementById('strategyResultWrap').innerHTML='<div class="placeholder-msg" style="color:var(--green-dn);"> '+maskSymbol(symbol)+' 腾讯真实日线 '+dailyOhlcv.length+' 根K线 | 点击 AI生成策略 开始</div>';
+  document.getElementById('strategyResultWrap').innerHTML='<div class="placeholder-msg" style="color:var(--green-dn);"> '+symbol+' 腾讯真实日线 '+dailyOhlcv.length+' 根K线 | 点击 AI生成策略 开始</div>';
   initDailyChart();
   updateRiskWheel();
 }
@@ -1082,7 +1070,7 @@ async function fetchFromLocal(symbol){
   logDataIdx=0;logPrevClose=null;
   const msg=json.simulated
     ?'<div class="placeholder-msg" style="color:var(--gold);"> '+json.message+' ('+dailyOhlcv.length+' 根K线)</div>'
-    :'<div class="placeholder-msg" style="color:var(--green-dn);"> '+maskSymbol(symbol)+' 真实日线 '+dailyOhlcv.length+' 根K线 | 点击 AI生成策略 开始</div>';
+    :'<div class="placeholder-msg" style="color:var(--green-dn);"> '+symbol+' 真实日线 '+dailyOhlcv.length+' 根K线 | 点击 AI生成策略 开始</div>';
   document.getElementById('strategyResultWrap').innerHTML=msg;
   initDailyChart();
   updateRiskWheel();
@@ -1526,108 +1514,7 @@ function viewBatchDetail(idx){
   setTimeout(()=>showBacktestOverlay(),100);
 }
 
-// ==================== 做T策略生成（AI 打分 + 过滤） ====================
-function scoreStrategy(bt){
-  if(!bt) return 0;
-  const ret=bt.totalReturn||0, wr=bt.actualWinRate||0, pf=bt.profitFactor||0, dd=bt.maxDrawdown||0, n=bt.tradeCount||0;
-  const retScore = ret<=0 ? 0 : Math.min(40, ret*2.5);
-  const wrScore  = Math.max(0, Math.min(25, (wr-35)*0.5));
-  const pfScore  = Math.max(0, Math.min(20, (pf-1)*8));
-  const ddScore  = Math.max(0, Math.min(15, (30-dd)*0.5));
-  const conf = n>=12?1 : n>=8?0.9 : n>=5?0.8 : n>=2?0.6 : 0.4;
-  return Math.round((retScore+wrScore+pfScore+ddScore)*conf);
-}
-
-let tStrategies=[];
-
-async function runTStrategy(){
-  if(!dailyOhlcv.length){await fetchDailyData();if(!dailyOhlcv.length)return;}
-  if(!ensureApiKey())return;
-  const symbol=document.getElementById('strategySymbol').value.trim()||'600036';
-  const customReq=document.getElementById('strategyCustom').value.trim();
-  const btn=document.getElementById('tGenBtn'),wrap=document.getElementById('strategyResultWrap');
-  btn.classList.add('loading');btn.disabled=true;
-  wrap.innerHTML='<div class="placeholder-msg" style="color:var(--cyan);">AI 正在生成日内做T策略并打分筛选…</div>';
-
-  const recent=dailyOhlcv.slice(-500);
-  const prices=recent.map(d=>d.close);
-  const avgPrice=prices.reduce((a,b)=>a+b,0)/prices.length;
-  const maxPrice=Math.max(...prices),minPrice=Math.min(...prices);
-  const rets=[];for(let i=1;i<prices.length;i++)rets.push((prices[i]-prices[i-1])/prices[i-1]);
-  const vol=Math.sqrt(rets.reduce((a,b)=>a+Math.pow(b,2),0)/rets.length)*100;
-  const dataCtx=symbol+' 近500日：均价'+avgPrice.toFixed(2)+'，区间['+minPrice.toFixed(2)+','+maxPrice.toFixed(2)+']，日波动'+vol.toFixed(2)+'%';
-
-  try{
-    const resp=await fetch('https://api.deepseek.com/v1/chat/completions',{
-      method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+DS_KEY},
-      body:JSON.stringify({model:'deepseek-chat',messages:[{role:'user',
-        content:'你是A股日内做T（T+0）量化策略专家。请一次生成12个不同的日内做T策略（正T低吸高抛 / 反T高抛低吸均可）。\n\n标的'+symbol+'：'+dataCtx+'\n'+(customReq?'用户额外要求：'+customReq:'')+'\n\n做T风格务必多样化：网格做T、VWAP均值回归、分时均线偏离、开盘区间突破、振幅突破、量价背离、尾盘回归、动量T、布林回归等各至少覆盖1个。\n\n返回纯JSON数组（不要markdown），包含12个策略对象，每个格式：\n{"strategyName":"做T策略名称(8字内)","strategyDesc":"做T逻辑(40字内)","style":"风格","holdingDays":"日内T+0","entryRules":[{"condition":"做T入场条件","indicator":"指标"}],"exitRules":[{"condition":"做T出场条件","type":"止盈/止损/信号"}],"positionSizing":"单笔T仓仓位建议","maxDrawdownWarning":"回撤警示","backtestSimulation":{"entrySignals":[],"exitSignals":[],"expectedReturn":0}}\n\n每个entrySignals是dailyOhlcv索引('+dailyOhlcv.length+'条数据)，6~12个做T入场点，exitSignals一一对应出场点。'}],
-      temperature:0.7,max_tokens:8192})
-    });
-    if(!resp.ok){const er=await resp.json().catch(()=>({}));throw new Error(er.error?.message||'HTTP '+resp.status)}
-    const data=await resp.json();
-    const jsonStr=data.choices[0].message.content.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
-    let arr=JSON.parse(jsonStr);
-    if(!Array.isArray(arr)||!arr.length)throw new Error('返回数据格式错误');
-
-    const orig=backtestResults;
-    arr.forEach(s=>{ runBacktest(s); s._backtest={...backtestResults}; s._score=scoreStrategy(s._backtest); });
-    backtestResults=orig;
-
-    const MIN_SCORE=50;
-    tStrategies=arr.filter(s=>s._score>=MIN_SCORE).sort((a,b)=>b._score-a._score);
-
-    if(tStrategies.length){ renderTStrategyList(MIN_SCORE, arr.length); }
-    else{ wrap.innerHTML='<div class="placeholder-msg" style="color:var(--gold);">本次 '+arr.length+' 套做T策略均未达优秀标准（≥'+MIN_SCORE+'分），请重新生成。</div>'; }
-  }catch(e){
-    wrap.innerHTML='<div class="placeholder-msg" style="color:var(--red-up);">做T策略生成失败：'+escapeHtml(e.message)+'</div>';
-  }finally{btn.classList.remove('loading');btn.disabled=false;}
-}
-
-function renderTStrategyList(minScore, totalCount){
-  const wrap=document.getElementById('strategyResultWrap');
-  let h='';
-  h+='<div style="padding:9px 14px;border-bottom:1px solid var(--border);background:var(--panel2);display:flex;align-items:center;">';
-  h+='<span style="font-size:15px;font-weight:800;color:var(--cyan);">做T策略 · 优秀榜</span>';
-  h+='<span style="font-size:11px;color:var(--dim);margin-left:8px;">仅显示 ≥'+minScore+'分 · 优秀 '+tStrategies.length+'/'+totalCount+' 套</span>';
-  h+='</div>';
-
-  tStrategies.forEach((s,i)=>{
-    const bt=s._backtest||{};
-    const sc=s._score||0;
-    const mc=v=>v>=0?'var(--red-up)':'var(--green-dn)';
-    const scCl=sc>=70?'var(--gold)':sc>=55?'var(--red-up)':'var(--cyan)';
-    const stars='★'.repeat(sc>=80?3:sc>=65?2:1)+'☆'.repeat(3-(sc>=80?3:sc>=65?2:1));
-    h+='<div class="strategy-rank-card">';
-    h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">';
-    h+='<span class="rank-num" style="color:'+(i===0?'var(--gold)':'var(--dim)')+';"> #'+(i+1)+'</span>';
-    h+='<span style="font-size:14px;font-weight:700;color:var(--text);">'+escapeHtml(s.strategyName)+'</span>';
-    h+='<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(57,210,192,.15);color:var(--cyan);">'+escapeHtml(s.style)+'</span>';
-    h+='<span style="margin-left:auto;font-size:13px;font-weight:800;color:'+scCl+';">'+stars+' '+sc+'分</span>';
-    h+='</div>';
-    h+='<div style="font-size:12px;color:var(--text2);margin-bottom:6px;">'+escapeHtml(s.strategyDesc)+'</div>';
-    h+='<div style="display:flex;align-items:center;gap:14px;">';
-    h+='<span class="rank-score" style="color:'+mc(bt.totalReturn||0)+';">'+(bt.totalReturn>=0?'+':'')+(bt.totalReturn||0).toFixed(1)+'%</span>';
-    h+='<span style="font-size:12px;color:var(--dim);">胜率 '+(bt.actualWinRate||0)+'%</span>';
-    h+='<span style="font-size:12px;color:var(--dim);">盈亏 1:'+(bt.profitFactor||0)+'</span>';
-    h+='<span style="font-size:12px;color:var(--dim);">回撤 -'+(bt.maxDrawdown||0)+'%</span>';
-    h+='<span class="rank-detail-btn" onclick="viewTDetail('+i+')">查看回测 ▶</span>';
-    h+='</div>';
-    h+='</div>';
-  });
-
-  wrap.innerHTML=h;
-}
-
-function viewTDetail(idx){
-  const s=tStrategies[idx];
-  if(!s)return;
-  backtestResults=s._backtest||backtestResults;
-  currentStrategy=s;
-  renderStrategyResult(s);
-  setTimeout(()=>showBacktestOverlay(),100);
-}
-
+// ==================== RISK WHEEL (多空轮盘) ====================
 function renderRiskWheel(){
   const w=document.getElementById('riskWheelContent');
   w.style.cssText='height:200px;overflow:hidden;padding:0;flex-shrink:0;';
